@@ -1,0 +1,21 @@
+model_architecture:
+  type: "RefinedCFAUNet"
+  params:
+    image_size: 256
+    in_channels: 3
+    base_channels: 64
+    # 复杂的通道倍率，增加网络深度和容量
+    channel_mults: "1,1,2,2,4,4" 
+    num_heads: 4
+    num_res_blocks: 2
+    dropout: 0.1
+    attention_resolutions: "32,16,8"
+
+diffusion_process:
+  type: "GaussianDiffusionStandard"
+  params:
+    # 严谨的 1000 步扩散
+    steps: 1000
+    beta_start: 0.0001
+    beta_end: 0.02
+    schedule_type: "linear"

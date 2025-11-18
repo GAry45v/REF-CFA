@@ -1,0 +1,19 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "MVTec_Target_Cable_Transfer"
+
+data_pipeline:
+  # 目标域通常只进行测试/推理 (Zero-shot / Adaptation)
+  test:
+    type: "MVTecDataset"
+    root: "/data/mvtec"
+    category: "cable"
+    is_train: False
+    batch_size: 1
+
+transfer_setup:
+  source_experiment: "MVTec_Source_Bottle_Train"
+  # 指向源域训练好的 Checkpoint
+  pretrained_checkpoint: "./output/MVTec_Source_Bottle_Train/checkpoint_epoch_2000.pth"
+  adaptation_steps: 50 # 若进行 Test-Time Adaptation

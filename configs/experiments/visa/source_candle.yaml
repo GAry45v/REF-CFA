@@ -1,0 +1,21 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "VisA_Source_Candle_Train"
+
+data_pipeline:
+  train:
+    type: "VisADataset"
+    root: "/data/visa"
+    category: "candle"
+    is_train: True
+    batch_size: 16 # VisA 图片较大，可能需要调整 BatchSize
+    extra_config:
+      supervised: False # 标准无监督设置
+
+  test:
+    type: "VisADataset"
+    root: "/data/visa"
+    category: "candle"
+    is_train: False
+    batch_size: 1

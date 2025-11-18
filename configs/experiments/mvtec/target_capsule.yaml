@@ -1,0 +1,16 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "MVTec_Target_Capsule_Transfer"
+
+data_pipeline:
+  test:
+    type: "MVTecDataset"
+    root: "/data/mvtec"
+    category: "capsule"
+    is_train: False
+    batch_size: 1
+
+transfer_setup:
+  source_experiment: "MVTec_Source_Bottle_Train"
+  pretrained_checkpoint: "./output/MVTec_Source_Bottle_Train/checkpoint_epoch_2000.pth"

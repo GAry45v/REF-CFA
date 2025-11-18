@@ -1,0 +1,19 @@
+system:
+  random_seed: 42
+  device_target: "cuda"
+  num_workers: 8
+  pin_memory: True
+  output_root: "./output"
+
+solver:
+  type: "AdamW"
+  base_lr: 3.0e-4
+  weight_decay: 0.05
+  max_epochs: 2000  # 严谨的长周期训练
+  save_checkpoint_interval: 250
+  # 学习率调度策略
+  scheduler:
+    type: "CosineAnnealingWarmRestarts"
+    params:
+      T_0: 500
+      T_mult: 2

@@ -1,0 +1,16 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "DAGM_Target_Class1_Transfer"
+
+data_pipeline:
+  test:
+    type: "DAGMDataset"
+    root: "/data/dagm"
+    category: "Class1"
+    is_train: False
+    batch_size: 1
+
+transfer_setup:
+  source_experiment: "DAGM_Source_Class2_Train"
+  pretrained_checkpoint: "./output/DAGM_Source_Class2_Train/checkpoint_epoch_2000.pth"

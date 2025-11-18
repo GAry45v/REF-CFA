@@ -1,0 +1,19 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "DAGM_Source_Class2_Train"
+
+data_pipeline:
+  train:
+    type: "DAGMDataset"
+    root: "/data/dagm"
+    category: "Class2"
+    is_train: True
+    batch_size: 32 # DAGM 纹理图通常较简单，可加大 BS
+
+  test:
+    type: "DAGMDataset"
+    root: "/data/dagm"
+    category: "Class2"
+    is_train: False
+    batch_size: 1

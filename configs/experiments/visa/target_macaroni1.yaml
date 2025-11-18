@@ -1,0 +1,16 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "VisA_Target_Macaroni1_Transfer"
+
+data_pipeline:
+  test:
+    type: "VisADataset"
+    root: "/data/visa"
+    category: "macaroni1"
+    is_train: False
+    batch_size: 1
+
+transfer_setup:
+  source_experiment: "VisA_Source_Candle_Train"
+  pretrained_checkpoint: "./output/VisA_Source_Candle_Train/checkpoint_epoch_2000.pth"

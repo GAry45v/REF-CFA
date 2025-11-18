@@ -1,0 +1,23 @@
+__base__: ["../../base/runtime.yaml", "../../base/models.yaml"]
+
+system:
+  experiment_name: "MVTec_Source_Bottle_Train"
+
+data_pipeline:
+  train:
+    type: "MVTecDataset"
+    root: "/data/mvtec"  # 请根据实际路径修改
+    category: "bottle"
+    is_train: True
+    batch_size: 16
+    
+  test:
+    type: "MVTecDataset"
+    root: "/data/mvtec"
+    category: "bottle"
+    is_train: False
+    batch_size: 1
+
+# 只有源域配置包含完整的 Solver 训练参数
+solver:
+  resume_checkpoint: "" # 可选：从断点恢复
