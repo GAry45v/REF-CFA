@@ -17,19 +17,13 @@ from src.modeling.architectures.segmentor import LocalizationSegmenter
 from src.modeling.architectures.transformer import FeatureRefinementTransformer
 
 class AnalysisEngine:
-    """
-    Integration of Transformer-based Discrimination, Supervised Localization, 
-    and Step-wise Residual Analysis into the Ref-CFA framework.
-    """
     def __init__(self, cfg, solver: DiffusionAnomalySolver = None):
         self.cfg = cfg
         self.logger = get_root_logger()
         self.device = torch.device(cfg.system.device_target)
         
-        # Reuse the main solver components (UNet + Diffusion Engine)
         if solver is None:
             self.solver = DiffusionAnomalySolver(cfg)
-            # Load checkpoint if specified in config or needed
             if cfg.solver.resume_checkpoint:
                 self._load_solver_checkpoint(cfg.solver.resume_checkpoint)
         else:
@@ -45,7 +39,6 @@ class AnalysisEngine:
     def _load_solver_checkpoint(self, path):
         self.logger.info(f"Loading UNet backbone from {path}")
         checkpoint = torch.load(path, map_location=self.device)
-        # Handle DataParallel wrapping
         if 'module.' in list(checkpoint.keys())[0] and not isinstance(self.solver.model, nn.DataParallel):
              new_state_dict = {k.replace('module.', ''): v for k, v in checkpoint.items()}
              self.solver.model.load_state_dict(new_state_dict)
@@ -166,23 +159,6 @@ class AnalysisEngine:
         
         torch.save(model.state_dict(), save_path)
 
-    def _evaluate_transformer(self, model, features, labels):
-        model.eval()
-        dataset = TensorDataset(features, labels)
-        loader = DataLoader(dataset, batch_size=16)
-        probs, true_labels = [], []
-        
-        with torch.no_grad():
-            for x, y in loader:
-                x = x.to(self.device)
-                logits, _ = model(x)
-                prob = torch.softmax(logits, dim=1)[:, 1]
-                probs.extend(prob.cpu().numpy())
-                true_labels.extend(y.numpy())
-                
-        auroc = roc_auc_score(true_labels, probs)
-        self.logger.info(f"Transformer Evaluation Results - AUROC: {auroc:.4f}")
-
     # ============================================================
     #  Feature 2: Supervised Localization (Target Domain Adaptation)
     # ============================================================
@@ -200,7 +176,6 @@ class AnalysisEngine:
         # 2. Setup Segmenter
         segmenter = LocalizationSegmenter().to(self.device)
         optimizer = torch.optim.Adam(segmenter.parameters(), lr=1e-4)
-        # Simple BCE for brevity, can use DiceBCELoss from your code
         criterion = nn.BCEWithLogitsLoss() 
         
         segmenter.train()
@@ -210,8 +185,6 @@ class AnalysisEngine:
             epoch_loss = 0
             steps = 0
             for batch in train_loader:
-                # Assuming loader returns (img, label) or (img, mask, label)
-                # We need masks for supervised training
                 if len(batch) == 3:
                     img, mask, label = batch
                 else:
@@ -297,9 +270,40 @@ class AnalysisEngine:
         overlay = cv2.addWeighted(img_np.astype(np.uint8), 0.6, mask_heatmap, 0.4, 0)
         cv2.imwrite(os.path.join(out_dir, f"sup_loc_{idx}.png"), overlay)
 
-    # ============================================================
-    #  Feature 3: Step-wise Residual Analysis
-    # ============================================================
+    # 添加到 src/core/analyzer.py 的 AnalysisEngine 类中
+
+    def _calculate_recall_at_k(self, labels, scores, k):
+        """计算 Recall@K (Top-K 异常检测率)"""
+        # 确保是 numpy 数组
+        if torch.is_tensor(labels): labels = labels.cpu().numpy()
+        if torch.is_tensor(scores): scores = scores.cpu().numpy()
+        
+        # 获取前 K 个最高分数的索引
+        idx = np.argsort(scores)[::-1][:k]
+        # 检查这些索引对应的标签是否为异常 (1)
+        hits = labels[idx].sum()
+        # 总异常数量
+        total_anomalies = labels.sum()
+        
+        if total_anomalies == 0: return 0.0
+        return hits / total_anomalies
+
+    def _evaluate_transformer(self, model, features, labels):
+        # ... (现有代码) ...
+        
+        # 计算指标
+        auroc = roc_auc_score(true_labels, probs)
+        auprc = average_precision_score(true_labels, probs)
+        
+        # 新增: Recall@K 计算
+        # 假设 K 等于异常样本的数量 (标准设置)
+        num_anomalies = int(sum(true_labels))
+        recall_at_k = self._calculate_recall_at_k(np.array(true_labels), np.array(probs), num_anomalies)
+
+        self.logger.info(f"Transformer Metrics:")
+        self.logger.info(f"  AUROC: {auroc:.4f}")
+        self.logger.info(f"  AUPRC: {auprc:.4f}")
+        self.logger.info(f"  Recall@{num_anomalies}: {recall_at_k:.4f}")
     
     def analyze_residuals(self, num_samples=3):
         self.logger.info("--- Running Step-wise Residual Analysis ---")
